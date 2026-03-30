@@ -1,0 +1,313 @@
+--- START OF FILE zoom_pink_theme.html ---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoom Pink Theme</title>
+    <!-- PeerJS for WebRTC connection -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- FontAwesome for standard Zoom Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Colors matching your photo precisely */
+            --bg-deep: #0b0e14;      /* Deep navy/black background */
+            --card-bg: #161b22;      /* Slightly lighter card background */
+            --neon-pink: #e91e63;    /* The vibrant pink from your photo */
+            --text-main: #ffffff;    /* Pure white text */
+            --text-gray: #8b949e;    /* Gray text for placeholders */
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+        }
+
+        body { 
+            background-color: var(--bg-deep);
+            color: var(--text-main); 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+        }
+
+        /* --- LOBBY --- */
+        .lobby-container {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            height: 100vh; background-color: var(--bg-deep); position: absolute; top: 0; left: 0; width: 100%; z-index: 100;
+        }
+
+        .screen {
+            display: none; width: 90%; max-width: 400px; padding: 40px; 
+            background: var(--card-bg);
+            border-radius: 24px; text-align: center; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+        .screen.active { display: block; animation: fadeIn 0.3s ease; }
+
+        .screen h1 { 
+            color: var(--neon-pink); 
+            font-size: 1.5rem; 
+            margin-bottom: 25px; 
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .screen input { 
+            width: 100%; padding: 16px; margin-bottom: 15px; border-radius: 12px; 
+            border: 1px solid #30363d; background: #0d1117; color: white; 
+            font-size: 1rem; outline: none; transition: 0.3s;
+        }
+        .screen input::placeholder { color: var(--text-gray); }
+        .screen input:focus { border-color: var(--neon-pink); }
+
+        /* THE BUTTON STYLE FROM YOUR PHOTO */
+        .btn { 
+            background-color: var(--neon-pink); 
+            color: white; border: none; padding: 15px; border-radius: 50px; /* Pill shape */
+            cursor: pointer; width: 100%; font-size: 0.9rem; font-weight: 800; 
+            text-transform: uppercase; letter-spacing: 1.5px;
+            transition: 0.2s; margin-bottom: 12px;
+        }
+        .btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+
+        .btn-secondary { background: transparent; color: var(--text-gray); border: 1px solid #30363d; text-transform: none; font-weight: 400; letter-spacing: 0; }
+
+        /* --- MEETING AREA --- */
+        #meeting-area { display: none; flex-direction: column; height: 100vh; width: 100vw; position: relative; }
+        #meeting-area.active { display: flex; }
+
+        .top-bar { 
+            padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; 
+            background: var(--bg-deep); border-bottom: 1px solid #30363d;
+        }
+        .room-title { color: var(--neon-pink); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+
+        .content-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; background: #000; }
+
+        .gallery { display: flex; gap: 15px; padding: 20px; transition: all 0.3s ease; flex: 1; flex-wrap: wrap; justify-content: center; align-content: center; overflow-y: auto; }
+        
+        .participant-card { 
+            position: relative; background: var(--card-bg); border-radius: 20px; overflow: hidden; 
+            border: 2px solid #30363d; width: 320px; height: 220px;
+        }
+        .participant-card video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        .participant-card .name-tag { 
+            position: absolute; bottom: 12px; left: 12px; background: rgba(0,0,0,0.7); 
+            padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; color: white; 
+        }
+
+        /* --- BOTTOM CONTROLS --- */
+        .bottom-bar { 
+            background: var(--card-bg); padding: 15px 30px; 
+            display: flex; justify-content: center; align-items: center; gap: 15px; 
+            border-top: 1px solid #30363d;
+        }
+        
+        .control-btn { 
+            background: #0d1117; border: 1px solid #30363d; color: white; 
+            width: 50px; height: 50px; border-radius: 15px; cursor: pointer; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+        }
+        .control-btn:hover { border-color: var(--neon-pink); color: var(--neon-pink); }
+        .control-btn.active { background: var(--neon-pink); border-color: var(--neon-pink); }
+
+        .leave-btn {
+            background-color: var(--neon-pink); color: white; border: none; 
+            padding: 0 25px; border-radius: 50px; height: 45px; 
+            font-weight: 800; text-transform: uppercase; cursor: pointer;
+            margin-left: 15px; letter-spacing: 1px; font-size: 0.8rem;
+        }
+
+        /* --- CHAT --- */
+        .chat-panel {
+            position: absolute; top: 0; right: 0; width: 320px; height: calc(100% - 80px); 
+            background: #0d1117; border-left: 1px solid #30363d;
+            display: flex; flex-direction: column; transform: translateX(100%); transition: 0.3s; z-index: 20;
+        }
+        .chat-panel.open { transform: translateX(0); }
+        .chat-header { padding: 20px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; color: var(--neon-pink); font-weight: bold; }
+        .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .chat-msg { background: #1c2128; padding: 10px 15px; border-radius: 15px; max-width: 85%; font-size: 0.9rem; }
+        .chat-msg.self { background: var(--neon-pink); align-self: flex-end; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <!-- LOBBY -->
+    <div id="lobby-container" class="lobby-container">
+        <div id="home-screen" class="screen active">
+            <h1>Zoom Clone</h1>
+            <button class="btn" onclick="showScreen('host-screen')">New Meeting</button>
+            <button class="btn btn-secondary" onclick="showScreen('join-screen')">Join with ID</button>
+        </div>
+
+        <div id="host-screen" class="screen">
+            <h1>Host Setup</h1>
+            <input type="text" id="host-name-input" placeholder="Your Name">
+            <button class="btn" onclick="startMeeting(true)">Start Meeting</button>
+            <button class="btn btn-secondary" onclick="showScreen('home-screen')">Back</button>
+        </div>
+
+        <div id="join-screen" class="screen">
+            <h1>Join Room</h1>
+            <input type="text" id="invite-id-input" placeholder="Invite ID">
+            <input type="text" id="join-name-input" placeholder="Nickname">
+            <button class="btn" onclick="startMeeting(false)">Join Now</button>
+            <button class="btn btn-secondary" onclick="showScreen('home-screen')">Back</button>
+        </div>
+    </div>
+
+    <!-- MEETING -->
+    <div id="meeting-area">
+        <div class="top-bar">
+            <div class="room-title">Meeting Active</div>
+            <div id="room-badge" style="display:none; font-size: 0.8rem; color: var(--text-gray);">
+                ID: <span id="display-id" style="color: var(--neon-pink); font-weight: bold;">...</span>
+                <i class="fas fa-copy" style="margin-left: 8px; cursor: pointer;" onclick="copyId()"></i>
+            </div>
+        </div>
+
+        <div id="chat-panel" class="chat-panel">
+            <div class="chat-header">CHAT <i class="fas fa-times" onclick="toggleChat()" style="cursor:pointer"></i></div>
+            <div class="chat-messages" id="chat-messages"></div>
+            <div style="padding: 15px; display: flex; gap: 8px; border-top: 1px solid #30363d;">
+                <input type="text" id="chat-input" placeholder="Type..." style="flex:1; background: #1c2128; border: none; padding: 10px; border-radius: 10px; color: white;">
+                <button onclick="sendChatMessage()" style="background: var(--neon-pink); border: none; padding: 10px; border-radius: 10px; color: white;"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+
+        <div class="content-wrapper">
+            <div class="gallery" id="gallery">
+                <div class="participant-card" id="card-local">
+                    <video id="local-video" muted autoplay playsinline></video>
+                    <div class="name-tag" id="local-name-tag">You</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-bar">
+            <button class="control-btn" id="btn-mic" onclick="toggleMic()"><i class="fas fa-microphone"></i></button>
+            <button class="control-btn" id="btn-cam" onclick="toggleCam()"><i class="fas fa-video"></i></button>
+            <button class="control-btn" id="btn-chat" onclick="toggleChat()"><i class="fas fa-comment"></i></button>
+            <button class="leave-btn" onclick="location.reload()">Leave</button>
+        </div>
+    </div>
+
+    <script>
+        let peer = null, myName = "Anonymous", isHost = false, hostId = null;
+        let localMediaStream = null, dataConnections = {}, guestHostConnection = null;
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        async function startMeeting(asHost) {
+            isHost = asHost;
+            if(isHost) {
+                myName = document.getElementById('host-name-input').value || "Host";
+            } else {
+                hostId = document.getElementById('invite-id-input').value;
+                myName = document.getElementById('join-name-input').value || "Guest";
+                if(!hostId) return alert("Enter ID");
+            }
+            document.getElementById('lobby-container').style.display = 'none';
+            document.getElementById('meeting-area').classList.add('active');
+            try {
+                localMediaStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+                document.getElementById('local-video').srcObject = localMediaStream;
+            } catch(e) { console.log("Media error"); }
+            initPeer();
+        }
+
+        function initPeer() {
+            peer = new Peer();
+            peer.on('open', id => {
+                if(isHost) {
+                    document.getElementById('room-badge').style.display = 'block';
+                    document.getElementById('display-id').innerText = id;
+                } else {
+                    const conn = peer.connect(hostId);
+                    setupConn(conn);
+                }
+            });
+            peer.on('connection', setupConn);
+            peer.on('call', call => {
+                call.answer(localMediaStream);
+                call.on('stream', stream => addVid(call.peer, stream, "Participant"));
+            });
+        }
+
+        function setupConn(conn) {
+            conn.on('open', () => {
+                dataConnections[conn.peer] = conn;
+                if(!isHost) guestHostConnection = conn;
+                conn.send({type:'join', name:myName});
+                peer.call(conn.peer, localMediaStream);
+            });
+            conn.on('data', data => { if(data.type === 'chat') appendChat(data.sender, data.text, false); });
+        }
+
+        function addVid(id, stream, name) {
+            if(document.getElementById('card-'+id)) return;
+            const card = document.createElement('div');
+            card.className = 'participant-card';
+            card.id = 'card-'+id;
+            const v = document.createElement('video');
+            v.srcObject = stream; v.autoplay = true; v.playsInline = true;
+            const tag = document.createElement('div');
+            tag.className = 'name-tag'; tag.innerText = name;
+            card.appendChild(v); card.appendChild(tag);
+            document.getElementById('gallery').appendChild(card);
+        }
+
+        function toggleChat() { 
+            const panel = document.getElementById('chat-panel');
+            panel.classList.toggle('open');
+            document.getElementById('btn-chat').classList.toggle('active', panel.classList.contains('open'));
+        }
+
+        function sendChatMessage() {
+            const val = document.getElementById('chat-input').value;
+            if(!val) return;
+            appendChat("You", val, true);
+            Object.values(dataConnections).forEach(c => c.send({type:'chat', sender:myName, text:val}));
+            document.getElementById('chat-input').value = "";
+        }
+
+        function appendChat(s, t, self) {
+            const m = document.getElementById('chat-messages');
+            const d = document.createElement('div');
+            d.className = 'chat-msg' + (self?' self':'');
+            d.innerText = t;
+            m.appendChild(d);
+            m.scrollTop = m.scrollHeight;
+        }
+
+        function toggleMic() {
+            const track = localMediaStream.getAudioTracks()[0];
+            track.enabled = !track.enabled;
+            document.getElementById('btn-mic').classList.toggle('active', !track.enabled);
+        }
+
+        function toggleCam() {
+            const track = localMediaStream.getVideoTracks()[0];
+            track.enabled = !track.enabled;
+            document.getElementById('btn-cam').classList.toggle('active', !track.enabled);
+        }
+
+        function copyId() {
+            navigator.clipboard.writeText(document.getElementById('display-id').innerText);
+            alert("ID Copied!");
+        }
+    </script>
+</body>
+</html>
